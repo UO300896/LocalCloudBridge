@@ -5,7 +5,7 @@
 
 Run your self-hosted AI and services anywhere!
 
-**LocalCloudBridge** is a lightweight **reverse proxy** written in **C#/.NET 8** that exposes a **local HTTP endpoint** for securely accessing **remote HTTP services**. It transparently injects authentication credentials, forwards requests, and can **automatically wake the remote host before establishing the connection.**
+**LocalCloudBridge** is a lightweight **reverse proxy** written in **C#/.NET 8/10** that exposes a **local HTTP endpoint** for securely accessing **remote HTTP services**. It transparently injects authentication credentials, forwards requests, and can **automatically wake the remote host before establishing the connection.**
 
 ---
 
