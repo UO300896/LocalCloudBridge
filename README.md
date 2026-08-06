@@ -179,7 +179,7 @@ dotnet publish LocalCloudBridge.Server -r osx-arm64
 To compile and package the mobile app into a standalone **Android APK**, run the following command from the root directory:
 
 ```bash
-dotnet publish LocalCloudBridge.Mobile -f net10.0-android -c Release
+dotnet publish LocalCloudBridge.Mobile
 ```
 
 #### Output & Automatic Packaging:
