@@ -2,36 +2,25 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using System.Net.Http.Headers;
 using LocalCloudBridge.Models;
+using LocalCloudBridge.Core;
 
-namespace LocalCloudBridge.Services;
+namespace LocalCloudBridge.Server;
 
-/// <summary>
-/// Core reverse proxy handler for forwarding HTTP requests and streaming responses.
-/// </summary>
 public static class ProxyService
 {
-    /// <summary>
-    /// Forwards an incoming HTTP request to the configured target service, injecting
-    /// necessary authentication headers and streaming back the response.
-    /// </summary>
-    /// <param name="context">The current ASP.NET Core HTTP context.</param>
-    /// <param name="factory">HTTP client factory.</param>
-    /// <param name="options">Bridge configuration options.</param>
     public static async Task HandleAsync(
         HttpContext context,
         IHttpClientFactory factory,
         BridgeOptions options)
     {
-        var client = factory.CreateClient("proxy");
+        var engine = new BridgeEngine(factory, options);
 
-        var url =
-            options.Target.Url +
-            context.Request.Path +
-            context.Request.QueryString;
+        var client = engine.CreateClient();
 
-        var request = new HttpRequestMessage(
-            new HttpMethod(context.Request.Method),
-            url);
+        var request = engine.CreateRequest(
+            context.Request.Method,
+            context.Request.Path.Value ?? "/",
+            context.Request.QueryString.Value ?? string.Empty);
 
         // Copy request body for non-empty requests
         if (context.Request.ContentLength > 0 ||
@@ -60,10 +49,6 @@ public static class ProxyService
             }
         }
 
-        // Apply authentication headers (Cloudflare, Bearer, Basic, ApiKey)
-        AuthenticationService.Apply(request, options);
-
-        // Send request to upstream target service
         var response = await client.SendAsync(
             request,
             HttpCompletionOption.ResponseHeadersRead,
@@ -73,16 +58,19 @@ public static class ProxyService
 
         // Copy response headers
         foreach (var header in response.Headers)
+        {
             context.Response.Headers[header.Key] =
                 new StringValues(header.Value.ToArray());
+        }
 
         foreach (var header in response.Content.Headers)
+        {
             context.Response.Headers[header.Key] =
                 new StringValues(header.Value.ToArray());
+        }
 
         context.Response.Headers.Remove("transfer-encoding");
 
-        // Stream response body back to downstream caller
         await using var stream =
             await response.Content.ReadAsStreamAsync();
 

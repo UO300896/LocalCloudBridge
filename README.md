@@ -84,28 +84,31 @@ Most **self-hosted AI services** are either only available on the local network 
 
 ```text
 LocalCloudBridge/
-├── Models/                      # Data transfer objects and configuration models
-│   ├── AuthenticationType.cs   # Enum defining supported authentication strategies
-│   ├── BridgeOptions.cs        # Root configuration classes and appsettings.json loader
-│   └── README.md               # Developer documentation for the Models layer
-├── Services/                    # Core proxy logic, auth injection, health checking, and WOL
-│   ├── AuthenticationService.cs# Applies configured authentication headers to outgoing HTTP requests
-│   ├── HealthChecker.cs        # Probes target service health at startup and triggers WOL if offline
-│   ├── ProxyService.cs          # Core reverse proxy handling request forwarding and response streaming
-│   ├── WakeOnLan.cs           # Builds and transmits UDP Magic Packets (WOL/WoW) over LAN or DDNS
-│   └── README.md               # Developer documentation for the Services layer
-├── .gitignore                   # Specifies untracked files (e.g. appsettings.json, build outputs)
-├── appsettings.example.json     # Template configuration file with example parameters
-├── LocalCloudBridge.csproj      # .NET 8 project file with single-file publish configuration
-├── Program.cs                   # Application entry point configuring ASP.NET Core Minimal API routes
-└── README.md                    # This file.
+├── assets/                               # App icon assets (fav.png & fav.ico)
+├── LocalCloudBridge.Core/                 # Shared portable engine (.NET 8 class library)
+│   ├── Models/                           # Strongly-typed configuration models & auth DTOs
+│   ├── Services/                         # Reverse proxy, auth, health check & WoL logic
+│   └── BridgeEngine.cs                   # Framework-agnostic HTTP forwarder
+├── LocalCloudBridge.Server/               # Desktop/Server Kestrel host (.NET 10 Web App)
+│   ├── BridgeHost.cs                     # Server builder & health check orchestrator
+│   ├── ProxyService.cs                   # ASP.NET Core HttpContext proxy handler
+│   ├── Program.cs                        # Executable entry point
+│   └── appsettings.json                  # Server configuration file
+├── LocalCloudBridge.Mobile/               # Cross-Platform Mobile App (.NET MAUI .NET 10)
+│   ├── Platforms/Android/                # Android permissions & manifest
+│   ├── MainPage.xaml / MainPage.xaml.cs  # Mobile dark-mode UI & log auto-scroll
+│   └── MauiProgram.cs                    # Application builder & Android Multicast Lock
+├── LocalCloudBridge.exe                  # Compiled standalone executable for Windows
+├── LocalCloudBridge.apk                  # Compiled Android APK package
+├── appsettings.json                      # Local server configuration file
+└── README.md                             # Repository documentation
 ```
 
 ---
 
 ## Configuration (`appsettings.json`)
 
-To configure LocalCloudBridge, copy `appsettings.example.json` to `appsettings.json` and adjust the settings to match your environment.
+To configure LocalCloudBridge on Desktop/Server, copy `appsettings.example.json` to `appsettings.json` and adjust the settings to match your environment. Mobile applications configure these settings directly through the UI.
 
 ```json
 {
@@ -157,33 +160,40 @@ To configure LocalCloudBridge, copy `appsettings.example.json` to `appsettings.j
 ## Building and Running
 
 ### Prerequisites
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (for Desktop/Server builds)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download) with **MAUI Workload** installed (`dotnet workload install maui-android`) for Mobile builds.
 
-### Running in Development
+### Desktop / Server Build (Single Binary Executable)
+To publish the desktop server as a single self-contained binary (`LocalCloudBridge.exe`):
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/LocalCloudBridge.git
-cd LocalCloudBridge
-
-# Restore dependencies & run
-dotnet run
+dotnet publish LocalCloudBridge.Server
 ```
 
-### Publishing as a Standalone Single Executable (Windows x64)
-The project file (`.csproj`) is pre-configured to generate a trimmed, self-contained, single-file executable for Windows x64 without debug symbols:
-
+To publish for Linux or macOS:
 ```bash
-dotnet publish
+dotnet publish LocalCloudBridge.Server -r linux-x64
+dotnet publish LocalCloudBridge.Server -r osx-arm64
 ```
 
-The output executable will be generated at:
-`bin/Release/net8.0/win-x64/publish/LocalCloudBridge.exe`
+### Mobile Build & Export to Android APK
+To compile and package the mobile app into a standalone **Android APK**, run the following command from the root directory:
 
-To compile for other platforms, override the runtime identifier:
 ```bash
-dotnet publish -c Release -r linux-x64 
-dotnet publish -c Release -r osx-arm64
+dotnet publish LocalCloudBridge.Mobile -f net10.0-android -c Release
 ```
+
+#### Output & Automatic Packaging:
+- The MSBuild build pipeline in `LocalCloudBridge.Mobile.csproj` automatically renames the signed package directly to **`LocalCloudBridge.apk`** and removes temporary unsigned files.
+- The output APK is generated at:
+  ```text
+  LocalCloudBridge.Mobile/bin/Release/net10.0-android/publish/LocalCloudBridge.apk
+  ```
+
+#### Mobile App Features:
+- **Auto-Saving Preferences**: Automatically saves and restores your last entered endpoints, credentials, and WoL parameters across app launches via native device `Preferences`.
+- **Auto-Scrolling Console**: The live proxy request log console automatically scrolls to the newest log entry in real time.
+- **Android Multicast Lock**: Automatically acquires Android's native Wi-Fi Multicast Lock during Wake-on-LAN operations to ensure UDP Magic Packets are transmitted over Wi-Fi without OS drop.
+- **Branded Interface & Splash Screen**: Includes custom app icon (`fav.png`) and dark-themed loading splash screen.
 
 ---
 

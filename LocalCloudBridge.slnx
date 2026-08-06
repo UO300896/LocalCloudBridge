@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="LocalCloudBridge.Core/LocalCloudBridge.Core.csproj" />
+  <Project Path="LocalCloudBridge.Mobile/LocalCloudBridge.Mobile.csproj" />
+  <Project Path="LocalCloudBridge.Server/LocalCloudBridge.Server.csproj" />
+</Solution>

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="LocalCloudBridge.Mobile.MainPage"
+             Title="LocalCloudBridge"
+             BackgroundColor="#0F172A">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- Title & Status Header -->
+            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                <VerticalStackLayout Grid.Column="0">
+                    <Label Text="LocalCloudBridge" FontSize="24" FontAttributes="Bold" TextColor="#F8FAFC"/>
+                    <Label Text="Mobile Proxy &amp; WoL Bridge" FontSize="13" TextColor="#94A3B8"/>
+                </VerticalStackLayout>
+
+                <Border Grid.Column="1" x:Name="StatusBadgeBorder" BackgroundColor="#334155" Padding="12,6">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+                    <Label x:Name="StatusBadgeLabel" Text="OFFLINE" FontSize="12" FontAttributes="Bold" TextColor="#CBD5E1"/>
+                </Border>
+            </Grid>
+
+            <!-- Target Settings Card -->
+            <Border Stroke="#334155" StrokeThickness="1" BackgroundColor="#1E293B" Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Target Configuration" FontSize="16" FontAttributes="Bold" TextColor="#38BDF8"/>
+
+                    <Label Text="Local Listen URL" FontSize="12" TextColor="#94A3B8"/>
+                    <Entry x:Name="ListenEntry" Text="http://127.0.0.1:11435" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+
+                    <Label Text="Target Service Name" FontSize="12" TextColor="#94A3B8"/>
+                    <Entry x:Name="TargetNameEntry" Text="Ollama AI" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+
+                    <Label Text="Target Service URL" FontSize="12" TextColor="#94A3B8"/>
+                    <Entry x:Name="TargetUrlEntry" Text="https://subdomain.yourdomain.com" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+
+                    <Label Text="Health Endpoint" FontSize="12" TextColor="#94A3B8"/>
+                    <Entry x:Name="HealthCheckEntry" Text="/api/tags" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Authentication Card -->
+            <Border Stroke="#334155" StrokeThickness="1" BackgroundColor="#1E293B" Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Authentication" FontSize="16" FontAttributes="Bold" TextColor="#38BDF8"/>
+
+                    <Label Text="Authentication Scheme" FontSize="12" TextColor="#94A3B8"/>
+                    <Picker x:Name="AuthTypePicker" Title="Select Auth Type" TextColor="#F8FAFC" BackgroundColor="#0F172A"
+                            SelectedIndexChanged="OnAuthTypeChanged">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>None</x:String>
+                                <x:String>Cloudflare</x:String>
+                                <x:String>Bearer</x:String>
+                                <x:String>Basic</x:String>
+                                <x:String>ApiKey</x:String>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+
+                    <!-- Cloudflare Options -->
+                    <VerticalStackLayout x:Name="CloudflareLayout" Spacing="8" IsVisible="False">
+                        <Label Text="CF Access Client ID" FontSize="12" TextColor="#94A3B8"/>
+                        <Entry x:Name="ClientIdEntry" Placeholder="Client ID" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                        <Label Text="CF Access Client Secret" FontSize="12" TextColor="#94A3B8"/>
+                        <Entry x:Name="ClientSecretEntry" IsPassword="True" Placeholder="Client Secret" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                    </VerticalStackLayout>
+
+                    <!-- Bearer Token -->
+                    <VerticalStackLayout x:Name="BearerLayout" Spacing="8" IsVisible="False">
+                        <Label Text="Bearer Token" FontSize="12" TextColor="#94A3B8"/>
+                        <Entry x:Name="BearerTokenEntry" IsPassword="True" Placeholder="Token" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                    </VerticalStackLayout>
+
+                    <!-- Basic Auth -->
+                    <VerticalStackLayout x:Name="BasicLayout" Spacing="8" IsVisible="False">
+                        <Label Text="Username" FontSize="12" TextColor="#94A3B8"/>
+                        <Entry x:Name="UsernameEntry" Placeholder="Username" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                        <Label Text="Password" FontSize="12" TextColor="#94A3B8"/>
+                        <Entry x:Name="PasswordEntry" IsPassword="True" Placeholder="Password" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                    </VerticalStackLayout>
+
+                    <!-- ApiKey -->
+                    <VerticalStackLayout x:Name="ApiKeyLayout" Spacing="8" IsVisible="False">
+                        <Label Text="Header Name" FontSize="12" TextColor="#94A3B8"/>
+                        <Entry x:Name="ApiKeyHeaderEntry" Text="X-API-Key" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                        <Label Text="API Key Value" FontSize="12" TextColor="#94A3B8"/>
+                        <Entry x:Name="ApiKeyValueEntry" IsPassword="True" Placeholder="Key Value" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Wake-on-LAN Card -->
+            <Border Stroke="#334155" StrokeThickness="1" BackgroundColor="#1E293B" Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0" Text="Wake-on-LAN (Auto-Wake)" FontSize="16" FontAttributes="Bold" TextColor="#38BDF8"/>
+                        <Switch Grid.Column="1" x:Name="WolSwitch" IsToggled="True"/>
+                    </Grid>
+
+                    <Label Text="MAC Address" FontSize="12" TextColor="#94A3B8"/>
+                    <Entry x:Name="MacAddressEntry" Placeholder="AA:BB:CC:DD:EE:FF" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+
+                    <Label Text="DDNS Host / Wake-on-WAN (Optional)" FontSize="12" TextColor="#94A3B8"/>
+                    <Entry x:Name="WolHostEntry" Placeholder="yourdomain.ddns.net" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+
+                    <Grid ColumnDefinitions="*,*">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                            <Label Text="UDP Port" FontSize="12" TextColor="#94A3B8"/>
+                            <Entry x:Name="WolPortEntry" Text="9" Keyboard="Numeric" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="4" Margin="10,0,0,0">
+                            <Label Text="Broadcast IP" FontSize="12" TextColor="#94A3B8"/>
+                            <Entry x:Name="BroadcastIpEntry" Text="255.255.255.255" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Start / Stop Button -->
+            <Button x:Name="StartStopButton"
+                    Text="Start Proxy Bridge"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    BackgroundColor="#0284C7"
+                    TextColor="White"
+                    CornerRadius="10"
+                    HeightRequest="50"
+                    Clicked="OnStartStopClicked" />
+
+            <!-- Console Log Output Card -->
+            <Border Stroke="#334155" StrokeThickness="1" BackgroundColor="#0F172A" Padding="12">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Live Console Logs" FontSize="14" FontAttributes="Bold" TextColor="#94A3B8"/>
+                    <ScrollView x:Name="LogScrollView" HeightRequest="160">
+                        <Label x:Name="LogLabel" Text="Bridge ready to start." FontFamily="monospace" FontSize="11" TextColor="#22C55E"/>
+                    </ScrollView>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
