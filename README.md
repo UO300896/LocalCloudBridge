@@ -3,9 +3,9 @@
 [![NET 8.0](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/download/dotnet/8.0)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Run your self-hosted AI anywhere!
+Run your self-hosted AI and services anywhere!
 
-**LocalCloudBridge** is a lightweight **reverse proxy** written in **C#/.NET 8** that exposes a **local HTTP endpoint** for securely accessing **remote HTTP services**. It transparently injects authentication credentials, forwards requests, and can **automatically wake the remote host before establishing the connection.**
+**LocalCloudBridge** is a lightweight **reverse proxy** written in **C#/.NET 8/10** that exposes a **local HTTP endpoint** for securely accessing **remote HTTP services**. It transparently injects authentication credentials, forwards requests, and can **automatically wake the remote host before establishing the connection.**
 
 ---
 
@@ -33,13 +33,13 @@ Most **self-hosted AI services** are either only available on the local network 
 
 ## Typical Use Cases
 
-- **Remote Ollama**: Run **LLM inferences** on your home **GPU server** from your **laptop while traveling**.
+- **Remote Ollama**: Run **LLM inferences** on your home **GPU server** from your **laptop or mobile while traveling**.
 - **Remote Open WebUI & AI Frontends**: Connect local **AI interfaces** to **remote backends**.
 - **Home Assistant & Smart Home APIs**: Interact with **home automation APIs** securely from **external networks**.
 - **Immich & Media Services**: Access **self-hosted photo/video APIs** remotely.
 - **Private REST APIs**: Proxy **developer tooling** and requests to **internal microservices**.
 - **AI IDE Extensions**: Use extensions (**Cline**, **Continue**, **Roo Code**, etc.) with **remote LLM backends** **without changing extension code**.
-- **Local Desktop Applications**: Any **desktop app** or **CLI** that expects a local HTTP endpoint.
+- **Local Desktop Applications**: Any **desktop app**, **mobile app** or **CLI** that expects a local HTTP endpoint.
 
 ---
 
@@ -48,8 +48,9 @@ Most **self-hosted AI services** are either only available on the local network 
 - **Pluggable Authentication**: Supports **Cloudflare Access Service Tokens** (`CF-Access-Client-Id` & `CF-Access-Client-Secret`), **HTTP Bearer Tokens**, **HTTP Basic Auth**, **Custom API Keys**, or **unauthenticated forwarding**. The modular codebase makes it easy to add custom auth schemes.
 - **Automated Health Monitoring & Auto-Wake**: Monitors upstream target health at startup. If unreachable, broadcasts **UDP Magic Packets** (local **WOL** broadcast or remote **DDNS Wake-on-WAN**) and waits until the target host powers on.
 - **Full HTTP Streaming & Large Payloads**: Supports **chunked transfer encoding**, **streaming responses** (**Server-Sent Events / LLM tokens**), and **unlimited request body upload limits** (ideal for uploading large AI model weights).
-- **Single Executable Deployment**: Ships as a **single**, self-contained binary (`.exe`) with **Zero Third-Party Dependencies**.
+- **Single Executable Deployment**: Ships as a **single**, self-contained binary (`.exe` or `.apk`) with **Zero Third-Party Dependencies**.
 - **Transparent Reverse Proxy**: Preserves **HTTP methods**, **headers**, **query strings**, **request bodies** and **streaming responses** without requiring application changes.
+- **Mobile Cross-Platform**: Available as a mobile app too!!
 ---
 
 ## How It Works
