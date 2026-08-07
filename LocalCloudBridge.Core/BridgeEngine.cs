@@ -24,7 +24,9 @@ public sealed class BridgeEngine
 
     public string BuildTargetUrl(string path, string query)
     {
-        return _options.Target.Url + path + query;
+        string baseUrl = _options.Target.Url.TrimEnd('/');
+        string targetPath = path.StartsWith('/') ? path : "/" + path;
+        return baseUrl + targetPath + query;
     }
 
     public void ApplyAuthentication(HttpRequestMessage request)

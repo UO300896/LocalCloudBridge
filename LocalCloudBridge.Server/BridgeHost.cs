@@ -61,7 +61,6 @@ public sealed class BridgeHost
             target = options.Target.Url,
             health = options.Target.HealthCheck
         }));
-
         app.MapGet("/health", async (IHttpClientFactory factory) =>
         {
             try
@@ -70,7 +69,7 @@ public sealed class BridgeHost
 
                 var request = new HttpRequestMessage(
                     HttpMethod.Get,
-                    options.Target.Url + options.Target.HealthCheck);
+                    options.Target.Url.TrimEnd('/') + options.Target.HealthCheck);
 
                 AuthenticationService.Apply(request, options);
 

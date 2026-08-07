@@ -20,10 +20,14 @@ public sealed class PortableProxyServer
     public PortableProxyServer(BridgeOptions options, HttpClient? client = null)
     {
         _options = options;
-        _client = client ?? new HttpClient(new HttpClientHandler
+        _client = client ?? new HttpClient(new SocketsHttpHandler
         {
             AllowAutoRedirect = false,
-            AutomaticDecompression = DecompressionMethods.All
+            AutomaticDecompression = DecompressionMethods.All,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
+            ConnectTimeout = TimeSpan.FromSeconds(15),
+            EnableMultipleHttp2Connections = true
         });
     }
 
@@ -110,6 +114,7 @@ public sealed class PortableProxyServer
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
         string rawUrl = context.Request.RawUrl ?? "/";
+        string rawPath = rawUrl.Split('?')[0];
         string method = context.Request.HttpMethod;
 
         Log($"info: System.Net.Http.HttpClient.proxy.LogicalHandler[100]");
@@ -117,70 +122,177 @@ public sealed class PortableProxyServer
 
         try
         {
-            string targetUrl = _options.Target.Url.TrimEnd('/') + rawUrl;
-
-            using var request = new HttpRequestMessage(new HttpMethod(method), targetUrl);
-
-            // Copy request body
-            if (context.Request.HasEntityBody)
+            // Intercept root endpoint (/)
+            if (string.Equals(rawPath, "/", StringComparison.OrdinalIgnoreCase))
             {
-                request.Content = new StreamContent(context.Request.InputStream);
-                if (!string.IsNullOrWhiteSpace(context.Request.ContentType))
+                byte[] jsonBytes = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(context.Request.ContentType);
+                    status = "ok",
+                    service = _options.Target.Name,
+                    target = _options.Target.Url,
+                    health = _options.Target.HealthCheck
+                }));
+
+                context.Response.StatusCode = (int)HttpStatusCode.OK;
+                context.Response.ContentType = "application/json; charset=utf-8";
+                await context.Response.OutputStream.WriteAsync(jsonBytes, token);
+                context.Response.Close();
+
+                sw.Stop();
+                Log($"info: System.Net.Http.HttpClient.proxy.LogicalHandler[101]");
+                Log($"      End processing HTTP request after {sw.Elapsed.TotalMilliseconds:F4}ms - 200");
+                return;
+            }
+
+            // Intercept health check endpoint (/health)
+            if (string.Equals(rawPath.TrimEnd('/'), "/health", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    string healthUrl = _options.Target.Url.TrimEnd('/') + _options.Target.HealthCheck;
+                    using var healthRequest = new HttpRequestMessage(HttpMethod.Get, healthUrl);
+                    AuthenticationService.Apply(healthRequest, _options);
+
+                    using var healthResponse = await _client.SendAsync(healthRequest, token);
+
+                    byte[] jsonBytes = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        connected = healthResponse.IsSuccessStatusCode,
+                        status = (int)healthResponse.StatusCode,
+                        service = _options.Target.Name
+                    }));
+
+                    context.Response.StatusCode = (int)HttpStatusCode.OK;
+                    context.Response.ContentType = "application/json; charset=utf-8";
+                    await context.Response.OutputStream.WriteAsync(jsonBytes, token);
+                    context.Response.Close();
+
+                    sw.Stop();
+                    Log($"info: System.Net.Http.HttpClient.proxy.LogicalHandler[101]");
+                    Log($"      End processing HTTP request after {sw.Elapsed.TotalMilliseconds:F4}ms - 200");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    byte[] jsonBytes = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        connected = false,
+                        error = ex.Message
+                    }));
+
+                    context.Response.StatusCode = (int)HttpStatusCode.OK;
+                    context.Response.ContentType = "application/json; charset=utf-8";
+                    await context.Response.OutputStream.WriteAsync(jsonBytes, token);
+                    context.Response.Close();
+
+                    sw.Stop();
+                    Log($"info: System.Net.Http.HttpClient.proxy.LogicalHandler[101]");
+                    Log($"      End processing HTTP request after {sw.Elapsed.TotalMilliseconds:F4}ms - 200 (Error: {ex.Message})");
+                    return;
                 }
             }
 
-            // Copy headers
-            foreach (string? headerName in context.Request.Headers.AllKeys)
+            // Read entity body into memory buffer for potential retries
+            byte[]? bodyBytes = null;
+            if (context.Request.HasEntityBody)
             {
-                if (string.IsNullOrEmpty(headerName) || string.Equals(headerName, "Host", StringComparison.OrdinalIgnoreCase))
-                    continue;
+                using var ms = new MemoryStream();
+                await context.Request.InputStream.CopyToAsync(ms, token);
+                bodyBytes = ms.ToArray();
+            }
 
-                string[]? values = context.Request.Headers.GetValues(headerName);
-                if (values != null)
+            HttpResponseMessage? response = null;
+            Exception? lastException = null;
+            int maxAttempts = 2;
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
                 {
-                    if (!request.Headers.TryAddWithoutValidation(headerName, values))
+                    string targetUrl = _options.Target.Url.TrimEnd('/') + rawUrl;
+                    using var request = new HttpRequestMessage(new HttpMethod(method), targetUrl);
+
+                    if (bodyBytes != null && bodyBytes.Length > 0)
                     {
-                        request.Content?.Headers.TryAddWithoutValidation(headerName, values);
+                        request.Content = new ByteArrayContent(bodyBytes);
+                        if (!string.IsNullOrWhiteSpace(context.Request.ContentType))
+                        {
+                            request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(context.Request.ContentType);
+                        }
+                    }
+
+                    foreach (string? headerName in context.Request.Headers.AllKeys)
+                    {
+                        if (string.IsNullOrEmpty(headerName) || string.Equals(headerName, "Host", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        string[]? values = context.Request.Headers.GetValues(headerName);
+                        if (values != null)
+                        {
+                            if (!request.Headers.TryAddWithoutValidation(headerName, values))
+                            {
+                                request.Content?.Headers.TryAddWithoutValidation(headerName, values);
+                            }
+                        }
+                    }
+
+                    AuthenticationService.Apply(request, _options);
+
+                    response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+                    lastException = null;
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    if (attempt < maxAttempts)
+                    {
+                        Log($"warn: Proxy attempt {attempt} failed ({ex.Message}). Retrying in 500ms...");
+                        await Task.Delay(500, token);
                     }
                 }
             }
 
-            // Inject authentication
-            AuthenticationService.Apply(request, _options);
-
-            using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-            sw.Stop();
-
-            Log($"info: System.Net.Http.HttpClient.proxy.ClientHandler[101]");
-            Log($"      Received HTTP response headers after {sw.Elapsed.TotalMilliseconds:F4}ms - {(int)response.StatusCode}");
-
-            context.Response.StatusCode = (int)response.StatusCode;
-
-            foreach (var header in response.Headers)
+            if (response == null || lastException != null)
             {
-                context.Response.Headers[header.Key] = string.Join(", ", header.Value);
+                throw lastException ?? new HttpRequestException("Proxy request failed.");
             }
 
-            foreach (var header in response.Content.Headers)
+            using (response)
             {
-                context.Response.Headers[header.Key] = string.Join(", ", header.Value);
+                sw.Stop();
+
+                Log($"info: System.Net.Http.HttpClient.proxy.ClientHandler[101]");
+                Log($"      Received HTTP response headers after {sw.Elapsed.TotalMilliseconds:F4}ms - {(int)response.StatusCode}");
+
+                context.Response.StatusCode = (int)response.StatusCode;
+
+                foreach (var header in response.Headers)
+                {
+                    context.Response.Headers[header.Key] = string.Join(", ", header.Value);
+                }
+
+                foreach (var header in response.Content.Headers)
+                {
+                    context.Response.Headers[header.Key] = string.Join(", ", header.Value);
+                }
+
+                context.Response.Headers.Remove("Transfer-Encoding");
+
+                await using var responseStream = await response.Content.ReadAsStreamAsync(token);
+                await responseStream.CopyToAsync(context.Response.OutputStream, token);
+                context.Response.Close();
+
+                Log($"info: System.Net.Http.HttpClient.proxy.LogicalHandler[101]");
+                Log($"      End processing HTTP request after {sw.Elapsed.TotalMilliseconds:F4}ms - {(int)response.StatusCode}");
             }
-
-            context.Response.Headers.Remove("Transfer-Encoding");
-
-            await using var responseStream = await response.Content.ReadAsStreamAsync(token);
-            await responseStream.CopyToAsync(context.Response.OutputStream, token);
-            context.Response.Close();
-
-            Log($"info: System.Net.Http.HttpClient.proxy.LogicalHandler[101]");
-            Log($"      End processing HTTP request after {sw.Elapsed.TotalMilliseconds:F4}ms - {(int)response.StatusCode}");
         }
         catch (Exception ex)
         {
             sw.Stop();
             Log($"error: Request failed after {sw.Elapsed.TotalMilliseconds:F4}ms: {ex.Message}");
+            Log($"info: System.Net.Http.HttpClient.proxy.LogicalHandler[101]");
+            Log($"      End processing HTTP request after {sw.Elapsed.TotalMilliseconds:F4}ms with error - 502 Bad Gateway");
             try
             {
                 context.Response.StatusCode = (int)HttpStatusCode.BadGateway;
