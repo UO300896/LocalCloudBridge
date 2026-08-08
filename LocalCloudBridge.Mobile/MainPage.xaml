@@ -39,7 +39,14 @@
                     <Entry x:Name="TargetNameEntry" Text="Ollama AI" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
 
                     <Label Text="Target Service URL" FontSize="12" TextColor="#94A3B8"/>
-                    <Entry x:Name="TargetUrlEntry" Text="https://subdomain.yourdomain.com" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>
+                    <Entry x:Name="TargetUrlEntry" Text="https://subdomain.yourdomain.com" TextColor="#F8FAFC" BackgroundColor="#0F172A" TextChanged="OnTargetUrlChanged"/>
+
+                    <Border x:Name="HttpWarningBorder" Stroke="#EAB308" StrokeThickness="1" BackgroundColor="#422006" Padding="10,8" IsVisible="False">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="6"/>
+                        </Border.StrokeShape>
+                        <Label Text="⚠️ Warning: Target URL uses unencrypted HTTP. Credentials will travel in plaintext without SSL/TLS encryption!" FontSize="11" TextColor="#FDE047" LineBreakMode="WordWrap"/>
+                    </Border>
 
                     <Label Text="Health Endpoint" FontSize="12" TextColor="#94A3B8"/>
                     <Entry x:Name="HealthCheckEntry" Text="/api/tags" TextColor="#F8FAFC" BackgroundColor="#0F172A"/>

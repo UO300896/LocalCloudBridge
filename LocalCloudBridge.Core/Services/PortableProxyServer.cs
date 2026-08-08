@@ -51,6 +51,11 @@ public sealed class PortableProxyServer
             _listener.Start();
             OnStatusChanged?.Invoke("Running");
 
+            if (_options.Target.Url.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            {
+                Log("warn: Security Warning: Target URL uses unencrypted HTTP (http://...). Sensitive credentials could be exposed in transit on public networks. HTTPS is strongly recommended!");
+            }
+
             // Perform health check and WOL if target is offline
             _ = Task.Run(async () =>
             {

@@ -59,6 +59,7 @@ public static class AuthenticationService
                 // Inject custom API key header
                 if (!string.IsNullOrEmpty(options.Authentication.ApiKeyHeader))
                 {
+                    request.Headers.Remove(options.Authentication.ApiKeyHeader);
                     request.Headers.Add(
                         options.Authentication.ApiKeyHeader,
                         options.Authentication.ApiKey);
