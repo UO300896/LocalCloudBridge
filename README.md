@@ -291,7 +291,7 @@ ollama serve
    **Example Output:**
    ```text
    ---------------------------------------
-   LocalCloudBridge
+   LocalCloudBridge Health Monitor
    ---------------------------------------
 
    Connecting to: https://subdomain.yourdomain.com
