@@ -54,7 +54,7 @@ public sealed class BridgeHost
             await next();
         });
 
-        app.MapGet("/", () => Results.Json(new
+        app.MapGet("/status", () => Results.Json(new
         {
             status = "ok",
             service = options.Target.Name,

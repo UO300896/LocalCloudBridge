@@ -81,6 +81,14 @@ Most **self-hosted AI services** are either only available on the local network 
 └────────────────────────────────┘
 ```
 
+## Built-in Endpoints
+
+LocalCloudBridge intercepts two specific endpoints for diagnostics:
+
+- `/status`: Returns the internal status and configuration of the local bridge.
+- `/health`: Performs a live health check against the remote upstream service.
+- **All other paths (including `/`)** are transparently proxied directly to the upstream service.
+
 ---
 
 ## Project Structure
