@@ -317,7 +317,9 @@ ollama serve
 
 ### Authentication Example: Cloudflare Access Service Tokens
 
-When protecting a self-hosted service with **Cloudflare Zero Trust (Cloudflare Access)**, human users log in via browser-based Identity Providers (Google, GitHub, SSO, MFA). Automated tools, however, require a **Service Token** to authenticate programmatically via HTTP headers. ### Step-by-Step Setup in Cloudflare Zero Trust:
+When protecting a self-hosted service with **Cloudflare Zero Trust (Cloudflare Access)**, human users log in via browser-based Identity Providers (Google, GitHub, SSO, MFA). Automated tools, however, require a **Service Token** to authenticate programmatically via HTTP headers. 
+
+### Step-by-Step Setup in Cloudflare Zero Trust:
 
  1. **Log in to Cloudflare Zero Trust Dashboard**: 
  - Go to [Zero Trust Dashboard](https://one.dash.cloudflare.com/). 
