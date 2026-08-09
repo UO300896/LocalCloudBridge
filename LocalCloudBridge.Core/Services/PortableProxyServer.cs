@@ -127,8 +127,8 @@ public sealed class PortableProxyServer
 
         try
         {
-            // Intercept root endpoint (/)
-            if (string.Equals(rawPath, "/", StringComparison.OrdinalIgnoreCase))
+            // Intercept bridge status endpoint (/status)
+            if (string.Equals(rawPath.TrimEnd('/'), "/status", StringComparison.OrdinalIgnoreCase))
             {
                 byte[] jsonBytes = Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(new
                 {
