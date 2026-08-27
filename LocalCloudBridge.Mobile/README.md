@@ -26,7 +26,7 @@ LocalCloudBridge.Mobile/
 
 ## Key Features
 
-1. **Native Settings Persistence**: All input fields (Port, Remote URL, HealthCheck, Authentication credentials, WoL MAC/IP/Host) are automatically saved via `Microsoft.Maui.Storage.Preferences` and restored on application startup.
+1. **Native Settings Persistence**: All input fields (Port, Remote URL, HealthCheck, Authentication credentials, WoL MAC/IP/Host) are automatically saved via `Microsoft.Maui.Storage.ISecureStorage` and restored on application startup.
 2. **Real-time Log Console with Auto-Scroll**: Log outputs automatically scroll to the latest entry asynchronously as proxy requests flow through the bridge.
 3. **Android Wi-Fi Multicast Lock Integration**: Uses Android native `WifiManager.MulticastLock` wired in `MauiProgram.cs` to prevent the Android OS from dropping UDP Magic Packets during Wake-on-LAN operations over Wi-Fi.
 4. **Custom Branding**: Includes custom application icon and dark-themed splash screen configured in `LocalCloudBridge.Mobile.csproj`.
